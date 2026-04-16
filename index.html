@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Dash — Scatter Plot Predictor</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f3ee;
+    --surface: #ffffff;
+    --surface2: #f0ebe4;
+    --border: #e0d8cf;
+    --ink: #1a1410;
+    --ink2: #5a4f44;
+    --ink3: #9a8f84;
+    --teal: #0f7c6e;
+    --teal-light: #e0f2ef;
+    --amber: #c4700a;
+    --amber-light: #fef3e2;
+    --red: #c0392b;
+    --red-light: #fde8e6;
+    --green: #1a7a4a;
+    --green-light: #e3f5ec;
+    --dot: #0f7c6e;
+    --line: #c4700a;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .game-title {
+    font-family: 'DM Mono', monospace;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+
+  .game-title span { color: var(--teal); }
+
+  .subtitle {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--ink3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 20px;
+    text-align: center;
+    min-width: 90px;
+  }
+
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 2px;
+  }
+
+  .stat-value {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .stat-value.teal { color: var(--teal); }
+  .stat-value.amber { color: var(--amber); }
+
+  .progress-bar {
+    width: 100%;
+    max-width: 600px;
+    height: 5px;
+    background: var(--border);
+    border-radius: 3px;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--teal);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+  }
+
+  .game-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 600px;
+  }
+
+  .round-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--ink3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 6px;
+  }
+
+  .context-text {
+    font-size: 0.95rem;
+    color: var(--ink2);
+    line-height: 1.55;
+    margin-bottom: 1rem;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border-left: 3px solid var(--teal);
+  }
+
+  .context-text strong { color: var(--ink); font-weight: 500; }
+
+  canvas {
+    display: block;
+    margin: 0 auto 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fafaf8;
+  }
+
+  .question-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--ink);
+    margin-bottom: 1rem;
+    line-height: 1.5;
+  }
+
+  .question-text em {
+    font-style: normal;
+    color: var(--amber);
+    font-weight: 700;
+  }
+
+  .choices {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .choice-btn {
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: 10px;
+    color: var(--ink);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 13px 12px;
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s, transform 0.08s;
+    text-align: center;
+  }
+
+  .choice-btn:hover:not(:disabled) {
+    border-color: var(--teal);
+    background: var(--teal-light);
+    transform: translateY(-1px);
+  }
+
+  .choice-btn:active:not(:disabled) { transform: translateY(0); }
+  .choice-btn.correct { background: var(--green-light); border-color: var(--green); color: var(--green); }
+  .choice-btn.wrong   { background: var(--red-light);   border-color: var(--red);   color: var(--red); }
+  .choice-btn.reveal  { background: var(--green-light); border-color: var(--green); color: var(--green); opacity: 0.7; }
+  .choice-btn:disabled { cursor: default; }
+
+  .feedback-area {
+    min-height: 80px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .feedback-msg {
+    font-size: 0.95rem;
+    font-weight: 500;
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .feedback-msg.show { opacity: 1; }
+  .feedback-msg.correct { color: var(--green); }
+  .feedback-msg.wrong   { color: var(--red); }
+
+  .hint-text {
+    font-size: 0.82rem;
+    color: var(--ink2);
+    text-align: center;
+    opacity: 0;
+    transition: opacity 0.2s;
+    line-height: 1.55;
+    max-width: 440px;
+    padding: 8px 12px;
+    background: var(--amber-light);
+    border-radius: 8px;
+    border-left: 3px solid var(--amber);
+  }
+
+  .hint-text.show { opacity: 1; }
+
+  .next-btn {
+    display: none;
+    margin: 0.75rem auto 0;
+    background: var(--teal);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    padding: 12px 32px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.12s, transform 0.08s;
+  }
+
+  .next-btn:hover { background: #0a5f54; transform: translateY(-1px); }
+  .next-btn:active { transform: translateY(0); }
+  .next-btn.visible { display: block; }
+
+  .end-screen {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .end-screen.show { display: flex; }
+
+  .end-score {
+    font-family: 'DM Mono', monospace;
+    font-size: 5rem;
+    font-weight: 500;
+    color: var(--teal);
+    line-height: 1;
+  }
+
+  .end-label { font-size: 1rem; color: var(--ink2); }
+
+  .end-message {
+    font-size: 1.05rem;
+    color: var(--ink);
+    font-weight: 500;
+    max-width: 380px;
+    line-height: 1.6;
+  }
+
+  .breakdown {
+    width: 100%;
+    max-width: 500px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 0.88rem;
+  }
+
+  .breakdown-name { color: var(--ink); font-weight: 500; text-align: left; flex: 1; }
+  .breakdown-result { font-family: 'DM Mono', monospace; font-size: 0.78rem; margin-left: 10px; }
+  .breakdown-result.ok   { color: var(--green); }
+  .breakdown-result.miss { color: var(--red); }
+
+  .restart-btn {
+    background: var(--teal);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    padding: 14px 36px;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    transition: background 0.12s;
+  }
+
+  .restart-btn:hover { background: #0a5f54; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="game-title">Data <span>Dash</span></div>
+  <div class="subtitle">scatter plot predictor</div>
+</header>
+
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="stat-label">Score</div>
+    <div class="stat-value teal" id="score">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Streak</div>
+    <div class="stat-value amber" id="streak">0</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">Round</div>
+    <div class="stat-value" id="round-stat">1 / 10</div>
+  </div>
+</div>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progress" style="width:0%"></div>
+</div>
+
+<div class="game-card" id="game-card">
+  <div class="round-label" id="round-label">Round 1</div>
+  <div class="context-text" id="context-text"></div>
+  <canvas id="chart" width="540" height="300"></canvas>
+  <div class="question-text" id="question-text"></div>
+  <div class="choices" id="choices"></div>
+  <div class="feedback-area">
+    <div class="feedback-msg" id="feedback"></div>
+    <div class="hint-text" id="hint"></div>
+    <button class="next-btn" id="next-btn">Next &rarr;</button>
+  </div>
+</div>
+
+<div class="end-screen" id="end-screen">
+  <div class="end-score" id="end-score">0</div>
+  <div class="end-label">out of 10</div>
+  <div class="end-message" id="end-message"></div>
+  <div class="breakdown" id="breakdown"></div>
+  <button class="restart-btn" onclick="restart()">Play again</button>
+</div>
+
+<script>
+// ── CANVAS HELPERS ────────────────────────────────────────────────────────────
+function drawScatter(ctx, W, H, xLabel, yLabel, xMin, xMax, yMin, yMax,
+                     points, slope, intercept, highlightX, choices) {
+  const LM=58, RM=W-20, TM=22, BM=H-42;
+  const xRange = xMax-xMin, yRange = yMax-yMin;
+
+  function gx(v){ return LM + (v-xMin)/xRange*(RM-LM); }
+  function gy(v){ return BM - (v-yMin)/yRange*(BM-TM); }
+
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle='#fafaf8';
+  ctx.fillRect(0,0,W,H);
+
+  // Grid
+  ctx.strokeStyle='#e8e4de'; ctx.lineWidth=0.5;
+  const xStep = Math.ceil(xRange/6);
+  const yStep = Math.ceil(yRange/5);
+  for(let x=xMin;x<=xMax;x+=xStep){
+    ctx.beginPath(); ctx.moveTo(gx(x),TM); ctx.lineTo(gx(x),BM); ctx.stroke();
+  }
+  for(let y=yMin;y<=yMax;y+=yStep){
+    ctx.beginPath(); ctx.moveTo(LM,gy(y)); ctx.lineTo(RM,gy(y)); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle='#333'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(LM,BM); ctx.lineTo(RM+4,BM); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(LM,TM-4); ctx.lineTo(LM,BM); ctx.stroke();
+
+  // Axis ticks + labels
+  ctx.fillStyle='#666'; ctx.font='10px DM Sans,sans-serif'; ctx.textAlign='center';
+  for(let x=xMin;x<=xMax;x+=xStep){
+    ctx.fillText(x, gx(x), BM+14);
+    ctx.strokeStyle='#888'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(gx(x),BM-2); ctx.lineTo(gx(x),BM+2); ctx.stroke();
+  }
+  ctx.textAlign='right';
+  for(let y=yMin;y<=yMax;y+=yStep){
+    ctx.fillText(y, LM-5, gy(y)+4);
+    ctx.strokeStyle='#888'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(LM-2,gy(y)); ctx.lineTo(LM+2,gy(y)); ctx.stroke();
+  }
+
+  // Axis labels
+  ctx.fillStyle='#555'; ctx.font='11px DM Sans,sans-serif'; ctx.textAlign='center';
+  ctx.fillText(xLabel, (LM+RM)/2, H-4);
+  ctx.save(); ctx.translate(12,(TM+BM)/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText(yLabel, 0, 0); ctx.restore();
+
+  // Line of best fit
+  ctx.strokeStyle='#c4700a'; ctx.lineWidth=2.5; ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(gx(xMin), gy(slope*xMin+intercept));
+  ctx.lineTo(gx(xMax), gy(slope*xMax+intercept));
+  ctx.stroke();
+
+  // Data points
+  points.forEach(([x,y]) => {
+    ctx.fillStyle='#0f7c6e';
+    ctx.beginPath(); ctx.arc(gx(x),gy(y),5.5,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='white'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(gx(x),gy(y),5.5,0,Math.PI*2); ctx.stroke();
+  });
+
+
+}
+
+// ── QUESTIONS ─────────────────────────────────────────────────────────────────
+const QUESTIONS = [
+  {
+    context: 'A coach tracked hours of practice (x) and points scored (y) per game. The line of best fit is <strong>y = 4x + 20</strong>.',
+    xLabel:'Hours of practice', yLabel:'Points scored',
+    xMin:0, xMax:9, yMin:20, yMax:70,
+    slope:4, intercept:20,
+    points:[[1,25],[2,28],[3,33],[4,37],[5,43],[5,38],[6,45],[7,50],[8,55],[9,58]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict the points scored after <em>7 hours</em> of practice.',
+    highlightX: 7,
+    answer: 48,
+    work: '4(7) + 20 = 28 + 20 = 48',
+    choices: [36, 44, 48, 52],
+  },
+  {
+    context: 'A scientist tracked outdoor temperature °F (x) and number of ice cream cones sold (y). The line of best fit is <strong>y = 2x − 110</strong>.',
+    xLabel:'Temperature (°F)', yLabel:'Cones sold',
+    xMin:60, xMax:95, yMin:10, yMax:90,
+    slope:2, intercept:-110,
+    points:[[62,18],[65,22],[70,30],[72,36],[75,40],[78,44],[80,50],[82,55],[88,60],[90,68]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict the number of cones sold when the temperature is <em>80°F</em>.',
+    highlightX: 80,
+    answer: 50,
+    work: '2(80) − 110 = 160 − 110 = 50',
+    choices: [44, 48, 50, 54],
+  },
+  {
+    context: 'A gym teacher tracked weekly exercise minutes (x) and resting heart rate bpm (y). The line of best fit is <strong>y = −0.1x + 85</strong>.',
+    xLabel:'Minutes/week', yLabel:'Heart rate (bpm)',
+    xMin:0, xMax:300, yMin:50, yMax:90,
+    slope:-0.1, intercept:85,
+    points:[[30,82],[60,79],[90,76],[120,73],[150,70],[180,67],[210,65],[240,62],[270,58],[300,55]],
+    qType:'predict',
+    question: 'The scatter plot only shows data up to 300 minutes. Using the <em>equation</em>, predict the heart rate for a student who exercises <em>350 minutes per week</em>.',
+    highlightX: null,
+    answer: 50,
+    work: '−0.1(350) + 85 = −35 + 85 = 50',
+    choices: [45, 48, 50, 53],
+  },
+  {
+    context: 'A student tracked hours of sleep (x) and quiz scores (y). The line of best fit is <strong>y = 5x + 30</strong>.',
+    xLabel:'Hours of sleep', yLabel:'Quiz score',
+    xMin:4, xMax:10, yMin:50, yMax:85,
+    slope:5, intercept:30,
+    points:[[4,52],[5,58],[5,55],[6,62],[6,64],[7,66],[7,70],[8,72],[9,75],[10,80]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict the quiz score for a student who sleeps <em>9 hours</em>.',
+    highlightX: 9,
+    answer: 75,
+    work: '5(9) + 30 = 45 + 30 = 75',
+    choices: [70, 72, 75, 78],
+  },
+  {
+    context: 'A store tracked weeks after release (x) and weekly sales of a product (y). The line of best fit is <strong>y = −8x + 200</strong>.',
+    xLabel:'Weeks after release', yLabel:'Weekly sales',
+    xMin:0, xMax:20, yMin:0, yMax:210,
+    slope:-8, intercept:200,
+    points:[[1,195],[3,178],[5,162],[7,148],[9,130],[11,112],[13,100],[15,82],[17,68],[19,52]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict weekly sales at <em>week 10</em>.',
+    highlightX: 10,
+    answer: 120,
+    work: '−8(10) + 200 = −80 + 200 = 120',
+    choices: [110, 115, 120, 125],
+  },
+  {
+    context: 'A farmer tracked inches of rain per month (x) and crop yield in bushels (y). The line of best fit is <strong>y = 12x + 40</strong>.',
+    xLabel:'Inches of rain', yLabel:'Crop yield (bushels)',
+    xMin:0, xMax:10, yMin:40, yMax:165,
+    slope:12, intercept:40,
+    points:[[1,52],[2,66],[3,75],[4,88],[5,102],[6,112],[7,124],[8,137],[9,150],[10,160]],
+    qType:'predict',
+    question: 'The scatter plot only shows data up to 10 inches of rain. Using the <em>equation</em>, predict crop yield if there are <em>12 inches of rain</em>.',
+    highlightX: null,
+    answer: 184,
+    work: '12(12) + 40 = 144 + 40 = 184',
+    choices: [172, 178, 184, 190],
+  },
+  {
+    context: 'A researcher tracked study hours per week (x) and GPA (y). The line of best fit is <strong>y = 0.2x + 1.8</strong>.',
+    xLabel:'Study hours/week', yLabel:'GPA',
+    xMin:0, xMax:15, yMin:1.5, yMax:4.5,
+    slope:0.2, intercept:1.8,
+    points:[[2,2.2],[3,2.4],[4,2.6],[5,2.8],[6,3.0],[7,3.2],[8,3.4],[10,3.7],[12,4.0],[14,4.2]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict the GPA for a student who studies <em>10 hours per week</em>.',
+    highlightX: 10,
+    answer: 3.8,
+    work: '0.2(10) + 1.8 = 2.0 + 1.8 = 3.8',
+    choices: [3.4, 3.6, 3.8, 4.0],
+  },
+  {
+    context: 'A car dealership tracked the age of a car in years (x) and its resale value in thousands (y). The line of best fit is <strong>y = −2.5x + 30</strong>.',
+    xLabel:'Age (years)', yLabel:'Value ($thousands)',
+    xMin:0, xMax:10, yMin:0, yMax:35,
+    slope:-2.5, intercept:30,
+    points:[[1,28],[2,25],[3,23],[4,20],[5,18],[6,15],[7,12],[8,10],[9,7],[10,5]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict the resale value of a car that is <em>8 years old</em>.',
+    highlightX: 8,
+    answer: 10,
+    work: '−2.5(8) + 30 = −20 + 30 = 10',
+    choices: [7.5, 8.5, 10, 12.5],
+  },
+  {
+    context: 'A coffee shop tracked the high temperature °F (x) and hot drinks sold (y). The line of best fit is <strong>y = −2x + 160</strong>.',
+    xLabel:'Temperature (°F)', yLabel:'Hot drinks sold',
+    xMin:30, xMax:80, yMin:0, yMax:110,
+    slope:-2, intercept:160,
+    points:[[32,95],[40,80],[45,72],[50,65],[55,58],[60,50],[65,42],[70,30],[75,22],[78,12]],
+    qType:'predict',
+    question: 'The scatter plot only shows data from 30°F to 80°F. Using the <em>equation</em>, predict hot drink sales on a day that is <em>25°F</em>.',
+    highlightX: null,
+    answer: 110,
+    work: '−2(25) + 160 = −50 + 160 = 110',
+    choices: [102, 106, 110, 114],
+  },
+  {
+    context: 'A school tracked absences per month (x) and final exam scores (y). The line of best fit is <strong>y = −6x + 95</strong>.',
+    xLabel:'Absences', yLabel:'Exam score',
+    xMin:0, xMax:10, yMin:30, yMax:100,
+    slope:-6, intercept:95,
+    points:[[0,94],[1,88],[2,84],[3,76],[4,72],[5,65],[6,60],[7,52],[8,45],[9,38]],
+    qType:'predict',
+    question: 'Using the line of best fit, predict the exam score for a student with <em>4 absences</em>.',
+    highlightX: 4,
+    answer: 71,
+    work: '−6(4) + 95 = −24 + 95 = 71',
+    choices: [65, 68, 71, 74],
+  },
+];
+
+// ── GAME STATE ────────────────────────────────────────────────────────────────
+let questions = [], current = 0, score = 0, streak = 0, results = [], answered = false;
+
+function shuffle(arr) {
+  const a=[...arr];
+  for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+  return a;
+}
+
+function loadQuestion() {
+  answered = false;
+  const q = questions[current];
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+
+  drawScatter(ctx, canvas.width, canvas.height,
+    q.xLabel, q.yLabel, q.xMin, q.xMax, q.yMin, q.yMax,
+    q.points, q.slope, q.intercept, q.highlightX, q.choices);
+
+  document.getElementById('context-text').innerHTML = q.context;
+  document.getElementById('question-text').innerHTML = q.question;
+  document.getElementById('round-label').textContent = 'Round ' + (current+1);
+  document.getElementById('round-stat').textContent = (current+1) + ' / ' + questions.length;
+  document.getElementById('progress').style.width = (current/questions.length*100)+'%';
+
+  const shuffledChoices = shuffle(q.choices);
+  const choicesEl = document.getElementById('choices');
+  choicesEl.innerHTML = '';
+  shuffledChoices.forEach(choice => {
+    const btn = document.createElement('button');
+    btn.className = 'choice-btn';
+    btn.textContent = choice;
+    btn.onclick = () => handleAnswer(choice, btn, shuffledChoices);
+    choicesEl.appendChild(btn);
+  });
+
+  document.getElementById('feedback').className = 'feedback-msg';
+  document.getElementById('feedback').textContent = '';
+  document.getElementById('hint').className = 'hint-text';
+  document.getElementById('hint').textContent = '';
+  document.getElementById('next-btn').className = 'next-btn';
+}
+
+function handleAnswer(choice, btn, allChoices) {
+  if(answered) return;
+  answered = true;
+  const q = questions[current];
+  const correct = choice == q.answer;
+
+  document.querySelectorAll('.choice-btn').forEach(b => {
+    b.disabled = true;
+    if(b.textContent == q.answer) b.classList.add(correct ? 'correct' : 'reveal');
+  });
+  if(!correct) btn.classList.add('wrong');
+
+  const fb = document.getElementById('feedback');
+  const hint = document.getElementById('hint');
+
+  if(correct) {
+    score++; streak++;
+    document.getElementById('score').textContent = score;
+    document.getElementById('streak').textContent = streak;
+    fb.textContent = streak >= 3 ? 'Correct! ' + streak + ' in a row!' : 'Correct!';
+    fb.className = 'feedback-msg correct show';
+  } else {
+    streak = 0;
+    document.getElementById('streak').textContent = 0;
+    fb.textContent = 'Not quite — the answer is ' + q.answer + '.';
+    fb.className = 'feedback-msg wrong show';
+  }
+
+  hint.textContent = 'Work: ' + q.work;
+  hint.className = 'hint-text show';
+  document.getElementById('next-btn').className = 'next-btn visible';
+  results.push({ q: 'Round '+(current+1), correct, answer: q.answer, chosen: choice });
+}
+
+function nextQuestion() {
+  current++;
+  if(current >= questions.length) showEnd();
+  else loadQuestion();
+}
+
+function showEnd() {
+  document.getElementById('game-card').style.display = 'none';
+  document.getElementById('progress').style.width = '100%';
+  const end = document.getElementById('end-screen');
+  end.className = 'end-screen show';
+  document.getElementById('end-score').textContent = score;
+  const pct = score/questions.length;
+  let msg = '';
+  if(pct === 1) msg = 'Perfect score! You can read any line of best fit.';
+  else if(pct >= 0.8) msg = 'Great work! You have a strong handle on predictions.';
+  else if(pct >= 0.6) msg = 'Good effort — review the work shown for the ones you missed.';
+  else msg = 'Keep practicing. Check the work hints to build the skill.';
+  document.getElementById('end-message').textContent = msg;
+  const bd = document.getElementById('breakdown');
+  bd.innerHTML = '';
+  results.forEach((r,i) => {
+    const row = document.createElement('div');
+    row.className = 'breakdown-row';
+    row.innerHTML = '<span class="breakdown-name">Round '+(i+1)+': answer = '+r.answer+'</span>'
+      +'<span class="breakdown-result '+(r.correct?'ok':'miss')+'">'+(r.correct?'correct':'missed')+'</span>';
+    bd.appendChild(row);
+  });
+}
+
+function restart() {
+  score=0; streak=0; current=0; results=[];
+  document.getElementById('score').textContent=0;
+  document.getElementById('streak').textContent=0;
+  document.getElementById('end-screen').className='end-screen';
+  document.getElementById('game-card').style.display='block';
+  questions = shuffle(QUESTIONS);
+  loadQuestion();
+}
+
+document.getElementById('next-btn').addEventListener('click', nextQuestion);
+questions = shuffle(QUESTIONS);
+loadQuestion();
+</script>
+</body>
+</html>
